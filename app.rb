@@ -1,3 +1,26 @@
+def send_email(email_subject, email_body)
+  Mail.defaults do
+    delivery_method :smtp, {
+      :address              => "smtp.gmail.com",
+      :port                 => 587,
+      :domain               => 'shep.info',
+      :user_name            => ENV['GMAIL_ADDRESS'],
+      :password             => ENV['GMAIL_PASSWORD'],
+      :authentication       => 'plain',
+      :enable_starttls_auto => true  }
+  end
+
+  email_template = ERB.new File.read('./views/email.erb')
+  digest = email_template.result(binding)
+
+  Mail.deliver do
+    to ENV['DESTINATION_ADDRESS']
+    from ENV['GMAIL_ADDRESS']
+    subject "[RESIDENTS] #{email_subject}"
+    body digest
+  end
+end
+
 class ListBlast < Sinatra::Base
   enable :sessions
 
@@ -8,6 +31,7 @@ class ListBlast < Sinatra::Base
   }
 
   register Sinatra::Auth::Github
+  use Rack::Flash
 
   helpers do
     def repos
@@ -17,18 +41,16 @@ class ListBlast < Sinatra::Base
 
   get '/' do
     github_organization_authenticate!('itpresidents')
-    "hi"
+    erb :main
   end
 
   get '/logout' do
-
-  end
-
-  get '/blast' do
-    # form to send email
+    logout!
+    erb :loggedout
   end
 
   post '/blast' do
-    # send mail
+    send_email(params[:email][:subject], params[:email][:body])
+    redirect '/'
   end
 end
