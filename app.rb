@@ -50,6 +50,7 @@ class ListBlast < Sinatra::Base
   end
 
   post '/blast' do
+    authenticate!
     send_email(params[:email][:subject], params[:email][:body])
     redirect '/'
   end
